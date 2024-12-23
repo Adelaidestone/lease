@@ -1,5 +1,6 @@
 package com.atguigu.lease.web.admin.service.impl;
 
+import com.atguigu.lease.web.admin.service.ApartmentFeeValueService;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.atguigu.lease.model.entity.ApartmentFeeValue;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Service;
 */
 @Service
 public class ApartmentFeeValueServiceImpl extends ServiceImpl<ApartmentFeeValueMapper, ApartmentFeeValue>
-    implements IService<ApartmentFeeValue> {
+    implements ApartmentFeeValueService {
 
 }
 

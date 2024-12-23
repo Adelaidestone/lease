@@ -1,5 +1,6 @@
 package com.atguigu.lease.web.admin.service.impl;
 
+import com.atguigu.lease.web.admin.service.GraphInfoService;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.atguigu.lease.model.entity.GraphInfo;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Service;
 */
 @Service
 public class GraphInfoServiceImpl extends ServiceImpl<GraphInfoMapper, GraphInfo>
-    implements IService<GraphInfo> {
+    implements GraphInfoService {
 
 }
 
