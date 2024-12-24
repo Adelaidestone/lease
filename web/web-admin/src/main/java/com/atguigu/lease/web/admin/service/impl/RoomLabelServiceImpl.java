@@ -1,5 +1,6 @@
 package com.atguigu.lease.web.admin.service.impl;
 
+import com.atguigu.lease.web.admin.service.RoomLabelService;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.atguigu.lease.model.entity.RoomLabel;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Service;
 */
 @Service
 public class RoomLabelServiceImpl extends ServiceImpl<RoomLabelMapper, RoomLabel>
-    implements IService<RoomLabel> {
+    implements RoomLabelService {
 
 }
 

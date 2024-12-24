@@ -4,4 +4,33 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.atguigu.lease.web.admin.mapper.ApartmentInfoMapper">
 
+    <select id="pageItem" resultType="com.atguigu.lease.web.admin.vo.apartment.ApartmentItemVo">
+      select
+          ai.*,ifnull(room_cnt.cnt,0),ifnull(lease_cnt.cnt,0)
+       from (
+        select * from apartment_info
+        <where>
+            is_deleted=0
+            <if test="queryVo.provinceId!=null">
+                and Province_id=#{queryVo.provinceId}
+            </if>
+            <if test="queryVo.cityId!=null">
+                and city_id=#{queryVo.cityId}
+            </if>
+            <if test="queryVo.districtId=null">
+                and district_id=#{queryVo.districtId}
+            </if>
+        </where>
+        ) ai
+      left join
+       (
+                select apartment_id,count(id) cnt  from room_info  where is_deleted=0 group by apartment_id
+        ) room_cnt on (ai.id = room_cnt.apartment_id)
+      left join
+        (
+            select  apartment_id,count(id) cnt from lease_agreement where is_deleted=0  and
+            status in (2,5) group by apartment_id
+
+        ) lease_cnt on (ai.id = lease_cnt.apartment_id)
+    </select>
 </mapper>

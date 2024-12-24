@@ -1,17 +1,24 @@
 package com.atguigu.lease.web.admin.service.impl;
 
+import com.atguigu.lease.common.exception.LeaseException;
+import com.atguigu.lease.common.result.ResultCodeEnum;
 import com.atguigu.lease.model.entity.*;
 import com.atguigu.lease.model.enums.ItemType;
-import com.atguigu.lease.web.admin.mapper.ApartmentInfoMapper;
-import com.atguigu.lease.web.admin.service.ApartmentFacilityService;
-import com.atguigu.lease.web.admin.service.ApartmentFeeValueService;
-import com.atguigu.lease.web.admin.service.ApartmentInfoService;
-import com.atguigu.lease.web.admin.service.GraphInfoService;
+import com.atguigu.lease.web.admin.mapper.*;
+import com.atguigu.lease.web.admin.service.*;
+import com.atguigu.lease.web.admin.vo.apartment.ApartmentDetailVo;
+import com.atguigu.lease.web.admin.vo.apartment.ApartmentItemVo;
+import com.atguigu.lease.web.admin.vo.apartment.ApartmentQueryVo;
 import com.atguigu.lease.web.admin.vo.apartment.ApartmentSubmitVo;
+import com.atguigu.lease.web.admin.vo.fee.FeeValueVo;
 import com.atguigu.lease.web.admin.vo.graph.GraphVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.checkerframework.checker.units.qual.A;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -43,6 +50,33 @@ public class ApartmentInfoServiceImpl extends ServiceImpl<ApartmentInfoMapper, A
     @Autowired
     private GraphInfoService graphInfoService;
 
+    @Autowired
+    private ProvinceInfoMapper provinceInfoMapper;
+
+    @Autowired
+    private CityInfoMapper cityInfoMapper;
+
+    @Autowired
+    private DistrictInfoMapper districtInfoMapper;
+
+    @Autowired
+    private ApartmentInfoMapper apartmentInfoMapper;
+
+    @Autowired
+    private FacilityInfoMapper facilityInfoMapper;
+
+    @Autowired
+    private LabelInfoMapper labelInfoMapper;
+
+    @Autowired
+    private FeeValueMapper feeValueMapper;
+
+    @Autowired
+    private GraphInfoMapper graphInfoMapper;
+
+    @Autowired
+    private  RoomInfoMapper roomInfoMapper;
+
 
 
 
@@ -53,9 +87,20 @@ public class ApartmentInfoServiceImpl extends ServiceImpl<ApartmentInfoMapper, A
     @Override
     public void saveOrUpdateInfo(ApartmentSubmitVo apartmentSubmitVo) {
 
+        //已知provinceId 查询公寓所属的地址信息
+        ProvinceInfo provinceInfo = provinceInfoMapper.selectById(apartmentSubmitVo.getProvinceId());
+        apartmentSubmitVo.setProvinceName(provinceInfo.getName());
+
+        CityInfo cityInfo = cityInfoMapper.selectById(apartmentSubmitVo.getCityId());
+        apartmentSubmitVo.setCityName(cityInfo.getName());
+
+        DistrictInfo districtInfo = districtInfoMapper.selectById(apartmentSubmitVo.getDistrictId());
+        apartmentSubmitVo.setDistrictName(districtInfo.getName());
+
+
         Long id = apartmentSubmitVo.getId();//公寓id
         //添加公寓基本信息
-        this.updateById(apartmentSubmitVo);
+        this.saveOrUpdate(apartmentSubmitVo);
 
         //是否是修改
         if (id != null) {//是修改 先删掉与当前公寓有关的信息 再添加最新的关联信息
@@ -91,6 +136,7 @@ public class ApartmentInfoServiceImpl extends ServiceImpl<ApartmentInfoMapper, A
                 ApartmentLabel apartmentLabel=ApartmentLabel.builder().apartmentId(apartmentSubmitVo.getId()).labelId(labelId).build();
                 apartmentLabels.add(apartmentLabel);
             }
+            //批量添加标签
             apartmentLabelService.saveBatch(apartmentLabels);
         }
 
@@ -116,12 +162,83 @@ public class ApartmentInfoServiceImpl extends ServiceImpl<ApartmentInfoMapper, A
                 graphInfo.setUrl(graphvo.getUrl());
                 graphInfo.setItemId(apartmentSubmitVo.getId());
                 graphInfo.setItemType(ItemType.APARTMENT);
+
                 graphInfos.add(graphInfo);
             }
             graphInfoService.saveBatch(graphInfos);
         }
 
     }
+
+    @Override
+    public IPage<ApartmentItemVo> pageItem(Page<ApartmentItemVo> apartmentItemVoPage, ApartmentQueryVo queryVo) {
+        return apartmentInfoMapper.pageItem(apartmentItemVoPage,queryVo);
+    }
+
+    /*
+    回显的方法：根据公寓的id查询基本信息以及详细信息
+     */
+    @Override
+    public ApartmentDetailVo getDetailById(Long id) {
+        ApartmentDetailVo apartmentDetailVo = new ApartmentDetailVo();
+
+
+
+
+
+        //查询公寓的基本信息
+        ApartmentInfo apartmentInfo = this.getById(id);
+        BeanUtils.copyProperties(apartmentInfo, apartmentDetailVo);
+
+        //查询公寓配套信息
+       List<FacilityInfo> facilityInfoList = facilityInfoMapper.selectByApartmentId(id);
+       apartmentDetailVo.setFacilityInfoList(facilityInfoList);
+
+       //查询公寓标签信息
+        List<LabelInfo> labelInfoList = labelInfoMapper.selectListById(id);
+        apartmentDetailVo.setLabelInfoList(labelInfoList);
+
+        //查询公寓杂费信息
+        List<FeeValueVo> feeValueVoList= feeValueMapper.selectListByApartmentId(id);
+
+        //查询照片信息
+        List<GraphVo> graphVoList= graphInfoMapper.selectListByItemTypeAndItemId(id,ItemType.APARTMENT);
+
+
+
+
+        return apartmentDetailVo;
+
+
+    }
+
+    @Override
+    public void removeByIdInfo(Long id) {
+
+        //查询当前被删除的公寓是否有房间 如果有房间提示不能删除
+        Long count = roomInfoMapper.selectCount(new LambdaQueryWrapper<RoomInfo>().eq(RoomInfo::getId, id));
+        if(count>0){
+            //有房间 提示不能删除 抛自定义异常
+            throw new LeaseException(208,"该公寓有房间无法删除");
+
+        }
+
+        //删除公寓信息
+        this.removeById(id);
+        //删除公寓配套表信息
+        //删除公寓关联表信息
+        apartmentFacilityService.remove(new LambdaQueryWrapper<ApartmentFacility>().eq(ApartmentFacility::getApartmentId, id));
+
+        apartmentLabelService.remove(new LambdaQueryWrapper<ApartmentLabel>().eq(ApartmentLabel::getApartmentId, id));
+
+        apartmentFeeValueService.remove(new LambdaQueryWrapper<ApartmentFeeValue>().eq(ApartmentFeeValue::getApartmentId, id));
+
+        graphInfoService.remove(new LambdaQueryWrapper<GraphInfo>().eq(GraphInfo::getItemId, id).eq(GraphInfo::getItemType, ItemType.APARTMENT));
+
+
+
+    }
+
 
 }
 
