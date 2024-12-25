@@ -3,5 +3,48 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.atguigu.lease.web.admin.mapper.RoomInfoMapper">
+    <resultMap id="RoomItemVoMap" type="com.atguigu.lease.web.admin.vo.room.RoomItemVo" autoMapping="true">
+        <id property="id" column="id"/>
+        <association property="apartmentInfo" javaType="com.atguigu.lease.model.entity.ApartmentInfo" autoMapping="true">
+            <id property="id" column="apart_id"/>
+            <result property="isRelease" column="apart_is_release"/>
+        </association>
+    </resultMap>
+    <select id="pageRoomItemByQuery" resultMap="RoomItemVoMap">
+        select ri.id, ri.room_number, ri.rent, ri.apartment_id, ri.is_release,
+             la.room_id is not null isCheckin,la.status,
+             ai.id, ai.name,  ai.district_id, ai.district_name, ai.city_id, ai.city_name, ai.province_id, ai.province_name,
+             ai.is_release apart_is_release
+            from room_info ri left join lease_agreement la
+                    on ri.id = la.room_id and la.is_deleted=0 and la.status in (2,5)
+                    left join apartment_info ai
+                    on ri.apartment_id = ai.id and ai.is_deleted= 0
+                    <where>
+                     ri.is_deleted = 0
+                         <if test="queryVo.provinceId != null">
+                            ai.province_id=#{queryVo.province_id}
+                        </if>
+                        <if test="queryVo.provinceId != null">
+                            and ai.city_id=#{queryVo.city_id}
+                        </if>
+                        <if test="queryVo.provinceId != null">
+                            and  ai.district_id=#{queryVo.district_id}
+                        </if>
+                        <if test="queryVo.apartmentId != null">
+                             and ai.apartment_id=#{queryVo.apartment_id}
+                        </if>
+                    </where>
 
+    </select>
+    <select id="selectListInfo" resultType="com.atguigu.lease.model.entity.RoomInfo">
+        /*
+         查询公寓未签约的房间
+         */
+         select ri.*
+             from room_info ri
+            left join lease_agreement la on ri.id = la.room_id and la.is_deleted=0
+            where ri.is_deleted=0 and ri.id not in (
+                select room_id from lease_agreement where is_deleted=0 and status in (2,5)
+                ) and ri.apartment_id=#{id}
+    </select>
 </mapper>

@@ -1,8 +1,12 @@
 package com.atguigu.lease.web.admin.mapper;
 
 import com.atguigu.lease.model.entity.LeaseAgreement;
+import com.atguigu.lease.model.enums.ReleaseStatus;
+import com.atguigu.lease.web.admin.vo.agreement.AgreementQueryVo;
+import com.atguigu.lease.web.admin.vo.agreement.AgreementVo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 /**
 * @author liubo
@@ -10,7 +14,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 * @createDate 2023-07-24 15:48:00
 * @Entity com.atguigu.lease.model.LeaseAgreement
 */
+
 public interface LeaseAgreementMapper extends BaseMapper<LeaseAgreement> {
+
+
+    IPage<AgreementVo> pageInfo(Page<Object> objectPage, AgreementQueryVo queryVo);
+
+
+    AgreementVo getByIdInfo(Long id);
 
 }
 

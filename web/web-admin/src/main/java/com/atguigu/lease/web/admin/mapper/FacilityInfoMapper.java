@@ -16,6 +16,8 @@ public interface FacilityInfoMapper extends BaseMapper<FacilityInfo> {
 
     List<FacilityInfo> selectByApartmentId(Long id);
 
+    List<FacilityInfo> selectByRoomId(Long id);
+
 }
 
 

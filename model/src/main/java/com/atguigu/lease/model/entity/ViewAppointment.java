@@ -17,7 +17,7 @@ public class ViewAppointment extends BaseEntity {
 
     @Schema(description = "用户id")
     @TableField(value = "user_id")
-    private Long userId;
+     private Long userId;
 
     @Schema(description = "用户姓名")
     @TableField(value = "name")

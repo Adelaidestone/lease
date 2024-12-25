@@ -17,4 +17,15 @@
 --                 on fi.id = af.facility_id and af.is_deleted=0 where fi.is_deleted=0 and af.apartment_id =9
 
     </select>
+
+    <select id="selectByRoomId" resultType="com.atguigu.lease.model.entity.FacilityInfo">
+        select id,
+               type,
+               name,
+               icon
+        from facility_info  where is_deleted=0 and id in
+            (
+                select facility_id from room_facility where is_deleted=0 and room_id =#{id}
+                )
+    </select>
 </mapper>

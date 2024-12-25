@@ -16,6 +16,8 @@ public interface LabelInfoMapper extends BaseMapper<LabelInfo> {
 
     List<LabelInfo> selectListById(Long id);
 
+    List<LabelInfo> selectListByRoomId(Long id);
+
 }
 
 

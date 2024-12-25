@@ -1,18 +1,30 @@
 package com.atguigu.lease.web.admin.service.impl;
 
+import com.atguigu.lease.common.result.Result;
 import com.atguigu.lease.model.entity.*;
 import com.atguigu.lease.model.enums.ItemType;
-import com.atguigu.lease.web.admin.mapper.RoomInfoMapper;
+import com.atguigu.lease.model.enums.ReleaseStatus;
+import com.atguigu.lease.web.admin.mapper.*;
 import com.atguigu.lease.web.admin.service.*;
+import com.atguigu.lease.web.admin.vo.attr.AttrValueVo;
 import com.atguigu.lease.web.admin.vo.graph.GraphVo;
+import com.atguigu.lease.web.admin.vo.room.RoomDetailVo;
+import com.atguigu.lease.web.admin.vo.room.RoomItemVo;
+import com.atguigu.lease.web.admin.vo.room.RoomQueryVo;
 import com.atguigu.lease.web.admin.vo.room.RoomSubmitVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import kotlin.jvm.internal.Lambda;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +42,7 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
 
     @Autowired
     RoomAttrValueService roomAttrValueService;
+
     @Autowired
     private RoomFacilityService roomFacilityService;
 
@@ -38,9 +51,12 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
 
     @Autowired
     private RoomPaymentTypeService roomPaymentTypeService;
+
     @Autowired
     private RoomLeaseTermService roomLeaseTermService;
 
+    @Autowired
+    private RoomInfoMapper roomInfoMapper;
 
     @Override
     public void saveOrUpdateInfo(RoomSubmitVo roomSubmitVo) {
@@ -158,6 +174,113 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
 
         }
     }
+
+    @Override
+    public IPage<RoomItemVo> pageRoomItemByQuery(IPage<RoomItemVo> page, RoomQueryVo queryVo) {
+        return roomInfoMapper.pageRoomItemByQuery(page,queryVo);
+    }
+
+    @Autowired
+    GraphInfoMapper graphInfoMapper;
+    @Autowired
+    ApartmentInfoMapper apartmentInfoMapper;
+    @Autowired
+    RoomInfoService roomInfoService;
+    @Autowired
+    AttrValueMapper attrValueMapper;
+    @Autowired
+    FacilityInfoMapper facilityInfoMapper;
+    @Autowired
+    LabelInfoMapper labelInfoMapper;
+    @Autowired
+    PaymentTypeMapper paymentTypeMapper;
+    @Autowired
+    LeaseTermMapper leaseTermMapper;
+    @Autowired
+    LeaseAgreementMapper leaseAgreementMapper;
+
+
+    @Override
+    public RoomDetailVo getDetailById(Long id) {
+        //查询到的房间以及房间中的信息对象
+        RoomDetailVo roomDetailVo = new RoomDetailVo();
+
+        //查询房间基本信息
+        RoomInfo roomInfo =this.getById(id);
+
+        //房间所属的公寓
+        ApartmentInfo apartmentInfo=apartmentInfoMapper.selectById(roomInfo.getApartmentId());
+        //查询房间图片
+        List<GraphVo> graphVoList=graphInfoMapper.selectListByItemTypeAndItemId(id,ItemType.ROOM);
+        //查询房间属性
+        List<AttrValueVo> attrValueVoList=attrValueMapper.selectListByRoomId(id);
+        //查询房间配套
+        List<FacilityInfo> facilityInfoList=facilityInfoMapper.selectByRoomId(id);
+        //查询房间标签
+        List<LabelInfo> labelInfoList=labelInfoMapper.selectListByRoomId(id);
+        //查询房间支付方式
+        List<PaymentType> paymentTypeList=paymentTypeMapper.selectListByRoomId(id);
+        //查询房间可选租期查询逻辑
+        List<LeaseTerm> leaseTermList=leaseTermMapper.selectListByRoomId(id);
+
+        BeanUtils.copyProperties(roomInfo,roomDetailVo);
+        roomDetailVo.setApartmentInfo(apartmentInfo);
+        roomDetailVo.setGraphVoList(graphVoList);
+        roomDetailVo.setAttrValueVoList(attrValueVoList);
+        roomDetailVo.setFacilityInfoList(facilityInfoList);
+        roomDetailVo.setLabelInfoList(labelInfoList);
+        roomDetailVo.setPaymentTypeList(paymentTypeList);
+        roomDetailVo.setLeaseTermList(leaseTermList);
+
+
+        return roomDetailVo;
+
+    }
+
+    @Override
+    public void removeRoomById(Long id) {
+        //删除RoomInfo
+        super.removeById(id);
+
+        //删除graphInfoList
+        LambdaQueryWrapper<GraphInfo> graphInfoQueryWrapper = new LambdaQueryWrapper<>();
+        graphInfoQueryWrapper.eq(GraphInfo::getId, id);
+        graphInfoQueryWrapper.eq(GraphInfo::getItemType, ItemType.ROOM);
+        graphInfoService.remove(graphInfoQueryWrapper);
+
+        //删除attrValueList
+        LambdaQueryWrapper<RoomAttrValue> attrQueryWrapper = new LambdaQueryWrapper<>();
+        attrQueryWrapper.eq(RoomAttrValue::getRoomId, id);
+        roomAttrValueService.remove(attrQueryWrapper);
+
+        //删除facilityInfoList
+        LambdaQueryWrapper<RoomFacility> facilityQueryWrapper = new LambdaQueryWrapper<>();
+        facilityQueryWrapper.eq(RoomFacility::getRoomId,id);
+        roomFacilityService.remove(facilityQueryWrapper);
+
+        //删除labelInfoList
+        LambdaQueryWrapper<RoomLabel> labelQueryWrapper = new LambdaQueryWrapper<>();
+        labelQueryWrapper.eq(RoomLabel::getRoomId,id);
+        roomLabelService.remove(labelQueryWrapper);
+
+        //删除paymentTypeList
+        LambdaQueryWrapper<RoomPaymentType> paymentTypeQueryWrapper = new LambdaQueryWrapper<>();
+        paymentTypeQueryWrapper.eq(RoomPaymentType::getRoomId,id);
+        roomPaymentTypeService.remove(paymentTypeQueryWrapper);
+
+        //删除leaseTermList
+        LambdaQueryWrapper<RoomLeaseTerm> leaseTermQueryWrapper = new LambdaQueryWrapper<>();
+        leaseTermQueryWrapper.eq(RoomLeaseTerm::getRoomId,id);
+        roomLeaseTermService.remove(leaseTermQueryWrapper);
+
+    }
+
+    @Override
+    public List<RoomInfo> listInfo(Long id) {
+        return roomInfoMapper.selectListInfo(id);
+    }
+
+
 }
 
 
