@@ -20,6 +20,10 @@ spring:
     time-zone: GMT+8
   main:
       allow-circular-references: true
+  data:
+    redis:
+      host: 192.168.96.88
+      port: 6379
 
 #用于打印框架生成的sql语句，便于调试
 mybatis-plus:
@@ -32,6 +36,14 @@ minio:
   bucket-name: lease
   access-key: minioadmin
   secret-key: minioadmin
+
+
+admin:
+  auth:
+    path-patterns:
+      include: /admin/**
+      exclude: /admin/login/**
+
 
 
 
